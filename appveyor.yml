@@ -1,0 +1,42 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+skip_tags: true
+configuration:
+- Debug
+- Release
+environment:
+  matrix:
+    - CMAKE_SYSTEM_NAME: WindowsStore
+      CMAKE_SYSTEM_VERSION: 10.0
+    - CMAKE_SYSTEM_NAME: Windows
+platform:
+- Win32
+- x64
+- ARM
+before_build:
+- cmd: |
+    SET
+    cmake -G "Visual Studio 15 2017" -DCMAKE_SYSTEM_NAME:STRING=%CMAKE_SYSTEM_NAME% -DCMAKE_SYSTEM_VERSION=%CMAKE_SYSTEM_VERSION% -DCMAKE_GENERATOR_PLATFORM:STRING=%Platform% .
+build:
+  project: CLogger.sln
+  publish_nuget: true
+  verbosity: minimal
+after_build:
+- ps:  |
+    Push-AppveyorArtifact "$env:Configuration\CLogger.dll" -FileName "CLogger-$env:CMAKE_SYSTEM_NAME-$env:Configuration-$env:Platform-$env:appveyor_build_version.dll"
+    Push-AppveyorArtifact "$env:Configuration\CLogger.lib" -FileName "CLogger-$env:CMAKE_SYSTEM_NAME-$env:Configuration-$env:Platform-$env:appveyor_build_version.lib"
+before_deploy:
+
+- ps: |
+    Write-Host $artifacts.Values
+    
+    foreach ($artifactName in $artifacts.keys) {
+      "$artifacts[$artifactName]"
+    }
+    
+    Write-Host $env:APPVEYOR_JOB_NUMBER
+    Write-Host $env:APPVEYOR_JOB_NAME
+deploy:
+- provider: GitHub
+  auth_token:
+    secure: 51F7nL1+LYDCXCp/IcyI1R7KFpJn2+tn/QnkGHZT9iB8rtRT6jG2QPxiCwImZwl4
